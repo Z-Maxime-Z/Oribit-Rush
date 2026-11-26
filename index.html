@@ -259,7 +259,7 @@ const tone=(ty,f,t,d,v,f2)=>{const o=ac.createOscillator(),n=ac.createGain();o.t
 const hat=(t,v)=>{const s=ac.createBufferSource(),n=ac.createGain(),f=ac.createBiquadFilter();s.buffer=nb;f.type='highpass';f.frequency.value=7000;n.gain.setValueAtTime(v,t);n.gain.exponentialRampToValueAtTime(.001,t+.05);s.connect(f).connect(n).connect(bus);s.start(t);s.stop(t+.06)};
 function music(t00){
  const an=[{t:0,b:LEVELS[LV].b}];steps.forEach(s=>s.e.bpm&&an.push({t:s.t0,b:s.e.bpm}));
- const L=steps[steps.length-1],end=L.t0+L.dur+1,bass=LEVELS[LV].bass,lead=LEVELS[LV].lead;
+ const L=steps[steps.length-1],end=(MEND=L.t0+L.dur+1),bass=LEVELS[LV].bass,lead=LEVELS[LV].lead;
  an.forEach((a,j)=>{const nx=an[j+1]?an[j+1].t:end,bd=60/a.b,m=j>1?2:1;
   for(let k=0,t=a.t;t<nx-1e-3;k++,t+=bd){const w=t00+t;
    tone('sine',160,w,.14,.9,40);hat(w+bd/2,.25);tone('sawtooth',bass[(k>>2)%4],w,bd*.9,.18);
@@ -281,10 +281,10 @@ function press(){
  if(!cur&&T()<s.t0)return;
  if(a>WIN)return fail(e<0?'trop tôt':'trop tard');
  const k=a<.045?'P':a<.09?'G':e<0?'E':'L';st[k]++;combo=(k=='P'||k=='G')?combo+1:0;pts+={P:300,G:100,E:50,L:50}[k]*Math.min(4,1+(combo/10|0));fx.push({x:tiles[cur+1].x,y:tiles[cur+1].y,t:T(),k});
- if(++cur>=steps.length){state='win';tf=T();bus.gain.setTargetAtTime(0,ac.currentTime+1.5,.6);const q=(st.P*100+st.G*70+(st.E+st.L)*35)/steps.length,r=q>=95?'S':q>=85?'A':q>=70?'B':'C';if(pts>best){best=pts;sv('best'+LV,best)}msg('Niveau terminé !','Rang '+r+', '+pts+' points, précision '+q.toFixed(1)+' %','Parfaits '+st.P+', bien '+st.G+', tôt '+st.E+', tard '+st.L+'. Record : '+best+' points.','e')}}
+ if(++cur>=steps.length){state='win';tf=T();winMusic();const q=(st.P*100+st.G*70+(st.E+st.L)*35)/steps.length,r=q>=95?'S':q>=85?'A':q>=70?'B':'C';if(pts>best){best=pts;sv('best'+LV,best)}msg('Niveau terminé !','Rang '+r+', '+pts+' points, précision '+q.toFixed(1)+' %','Parfaits '+st.P+', bien '+st.G+', tôt '+st.E+', tard '+st.L+'. Record : '+best+' points.','e')}}
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 let pts=0,combo=0,best=0,keys=ld('keys',[['Space','Espace']]),lis=0,cal=ld('cal',0);build(0);lvUI();
-document.title='Orbit Rush v1.2';
+document.title='Orbit Rush v1.3';
 const home=()=>{if(bus)bus.disconnect();if(src)try{src.stop()}catch(e){}state='idle';cur=0;msg('Orbit Rush','Choisis une musique, puis appuie sur tes touches (menu « Touches »), clique ou touche l’écran quand l’astre en orbite atteint la prochaine case.','Choisis ta musique','h')};
 const chips=()=>{const c=$('chips');c.innerHTML='';keys.forEach(([code,l],i)=>{const b=document.createElement('button');b.className='chip';b.textContent=l+' ×';b.onclick=()=>{keys.splice(i,1);sv('keys',keys);chips()};c.append(b)});if(!keys.length)c.textContent='Aucune touche : seul le clic fonctionne.'};
 const closeM=()=>{$('menu').hidden=true;lis=0;$('add').textContent='Ajouter une touche'};
@@ -297,14 +297,14 @@ addEventListener('keydown',e=>{if(e.repeat)return;if(!$('cm').hidden||!$('pb').h
  if(keys.some(k=>k[0]==e.code)){e.preventDefault();press()}});
 cv.addEventListener('pointerdown',press);
 
-let an,fd=new Uint8Array(64),en=0,pat,dt0=0,bufs={},src;
+let an,fd=new Uint8Array(64),en=0,pat,dt0=0,bufs={},src,MEND=0;
 async function getBuf(i){if(LEVELS[i].buf)return LEVELS[i].buf;if(!bufs[i]){const b=atob(LEVELS[i].au),u=new Uint8Array(b.length);for(let k=0;k<b.length;k++)u[k]=b.charCodeAt(k);bufs[i]=await ac.decodeAudioData(u.buffer)}return bufs[i]}
 const nz=document.createElement('canvas');nz.width=nz.height=128;
 {const c=nz.getContext('2d'),im=c.createImageData(128,128);for(let i=0;i<im.data.length;i+=4){im.data[i]=im.data[i+1]=im.data[i+2]=Math.random()*255;im.data[i+3]=24}c.putImageData(im,0,0)}
 const stars=Array.from({length:70},()=>({x:Math.random(),y:Math.random(),z:.2+Math.random()*.8}));
 /* Fond dynamique : dégradé, étoiles en parallaxe, anneaux et spectre réagissent à la musique (analyseur audio). */
 function bg(t,fr){
- an&&(state=='run'||state=='edit')?an.getByteFrequencyData(fd):fd.fill(0);
+ an&&(state=='run'||state=='edit'||state=='win')?an.getByteFrequencyData(fd):fd.fill(0);
  let b=0;for(let i=0;i<4;i++)b+=fd[i];en=Math.max(b/1020,Math.exp(-fr*5)*.4);
  const dp=devicePixelRatio,cx=W/2,cy=H/2,m=Math.min(W,H);
  g.globalAlpha=1;g.fillStyle=col.bg;g.fillRect(0,0,W,H);
@@ -488,6 +488,9 @@ $('pbc').onclick=()=>{$('pb').hidden=true};
 $('pbo').onclick=async()=>{const t=$('pbt').value.trim().slice(0,40),p=($('pbp').value.trim()||'Anonyme').slice(0,24);if(!t)return note('Donne un titre à ton niveau.');sv('pseudo',p);$('pb').hidden=true;await publish(t,p)};
 $('oc').onclick=cmOpen;$('cmr').onclick=cmLoad;$('cmx').onclick=()=>{$('cm').hidden=true};$('bc').onclick=()=>{home();cmOpen()};
 function ovKey(e){if(e.code=='Escape'){if(!$('pb').hidden)$('pb').hidden=true;else if(!$('mu').hidden){pend=null;$('mu').hidden=true}else $('cm').hidden=true}}
+/* Après une victoire, la musique continue (en boucle) jusqu'au retour au menu. */
+function winMusic(){const L=LEVELS[LV];if(L.au||L.buf){if(src)src.loop=true;return}
+ if(!MEND)return;let nx=T0+MEND;const go=()=>{if(state!='win')return;music(nx);const w=(nx+MEND-2-ac.currentTime)*1000;nx+=MEND;setTimeout(go,Math.max(300,w))};go()}
 frame();
 </script>
 </body>
