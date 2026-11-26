@@ -1,8 +1,8 @@
 # Orbit_Rush
 
-Jeuen ligne : [Cliquer ici](https://z-maxime-z.github.io/Oribit-Rush/)
+Jeu en ligne : [Cliquer ici](https://z-maxime-z.github.io/Oribit-Rush/)
 
-Mon jeu en ligne : un jeu qui est pour l'instant expérimental mais qui accueillera dans quelque temps de nouvelles mécanique
+Mon jeu en ligne : un jeu qui est pour l'instant expérimental mais qui accueillera dans quelques temps de nouvelles mécaniques
 
 ## Utilisation
 
